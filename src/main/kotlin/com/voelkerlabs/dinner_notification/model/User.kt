@@ -26,4 +26,7 @@ data class User(
 
     @Column(name = "userName")
     val userName: String = "",
+
+    @Column(name = "points")
+    var points: Long? = 0,
 )

@@ -11,7 +11,7 @@ import java.time.Instant
 
 @Entity
 @Table(name = "notification")
-data class Notification (
+data class Notification(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
@@ -26,4 +26,8 @@ data class Notification (
     val notificationFrom: Long? = null,
     @Column(name = "notificationTo")
     val notificationTo: Long? = null,
-)
+) {
+    fun isNotRated(): Boolean {
+        return this.notificationStatus == NotificationStatus.PENDING || this.notificationStatus == NotificationStatus.RECEIVED || this.notificationStatus == NotificationStatus.IDLE
+    }
+}

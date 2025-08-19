@@ -1,11 +1,14 @@
 package com.voelkerlabs.dinner_notification.controller
 
+import com.voelkerlabs.dinner_notification.Constants
+import com.voelkerlabs.dinner_notification.dto.NotificationRatingResponseDTO
 import com.voelkerlabs.dinner_notification.dto.NotificationRequestDTO
 import com.voelkerlabs.dinner_notification.model.Notification
 import com.voelkerlabs.dinner_notification.model.NotificationStatus
 import com.voelkerlabs.dinner_notification.repository.NotificationRepository
 import com.voelkerlabs.dinner_notification.repository.UserRepository
 import com.voelkerlabs.dinner_notification.service.FirebaseService
+import com.voelkerlabs.dinner_notification.service.NotificationService
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
@@ -20,7 +23,8 @@ import java.time.Instant
 class NotificationController @Autowired constructor(
     private val firebaseService: FirebaseService,
     private val userRepository: UserRepository,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val notificationService: NotificationService
 ) {
     @PostMapping("/notifications")
     fun sendNotifications(@RequestBody @Valid body: NotificationRequestDTO): List<Notification> {
@@ -38,7 +42,7 @@ class NotificationController @Autowired constructor(
                 firebaseService.sendMessage(
                     user.fcmToken, "Test", "Notification"
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 notification.notificationStatus = NotificationStatus.ERROR
             }
             notificationRepository.save(notification)
@@ -50,10 +54,9 @@ class NotificationController @Autowired constructor(
     @GetMapping("/notifications/me")
     fun getOwnNotifications(@RequestParam(value = "id") me: Long): List<Notification> {
         val rawNotifications = notificationRepository.findNotificationsByNotificationTo(me)
-        val notificationExpiryMilliseconds: Long = 1000 * 60 * 10
         /* Mark expired notifications */
         val unmarkedExpiredNotifications = rawNotifications.filter { notification ->
-            val expirationTime = notification.createdAt?.plusMillis(notificationExpiryMilliseconds)
+            val expirationTime = notification.createdAt?.plusMillis(Constants.NOTIFICATION_EXPIRY_MILLISECONDS)
             (expirationTime?.isBefore(Instant.now())
                 ?: false) && notification.notificationStatus != NotificationStatus.EXPIRED
         }
@@ -61,13 +64,11 @@ class NotificationController @Autowired constructor(
             val updatedNotification = notification
             updatedNotification.notificationStatus = NotificationStatus.EXPIRED
             notificationRepository.save(updatedNotification)
-        }
-        /* Get and return unexpired notifications */
+        }/* Get and return unexpired notifications */
         val filteredNotifications = rawNotifications.filter { notification ->
-            val expirationTime = notification.createdAt?.plusMillis(notificationExpiryMilliseconds)
+            val expirationTime = notification.createdAt?.plusMillis(Constants.NOTIFICATION_EXPIRY_MILLISECONDS)
             expirationTime?.isAfter(Instant.now()) ?: false
-        }
-        /* Mark pending notifications as received */
+        }/* Mark pending notifications as received */
         filteredNotifications.forEach { notification ->
             if (notification.notificationStatus === NotificationStatus.PENDING) {
                 notification.notificationStatus = NotificationStatus.RECEIVED
@@ -79,31 +80,25 @@ class NotificationController @Autowired constructor(
     }
 
     @PutMapping("/notifications/accept")
-    fun acceptNotification(@RequestParam(value = "id") id: Long) {
-        val notification = notificationRepository.findById(id).orElseThrow()
-        notification.notificationStatus = NotificationStatus.ACCEPTED
-        notificationRepository.save(notification)
+    fun acceptNotification(@RequestParam(value = "id") id: Long): NotificationRatingResponseDTO {
+        return notificationService.handleNotificationRating(id, NotificationStatus.ACCEPTED)
     }
 
     @PutMapping("/notifications/decline")
-    fun declineNotification(@RequestParam(value = "id") id: Long) {
-        val notification = notificationRepository.findById(id).orElseThrow()
-        notification.notificationStatus = NotificationStatus.DECLINED
-        notificationRepository.save(notification)
+    fun declineNotification(@RequestParam(value = "id") id: Long): NotificationRatingResponseDTO {
+        return notificationService.handleNotificationRating(id, NotificationStatus.DECLINED)
     }
 
     @GetMapping("/notifications/trace")
     fun traceNotifications(@RequestParam(value = "id") me: Long): List<Notification> {
-        val notificationExpiryMilliseconds: Long = 1000 * 60 * 10
         val rawNotifications = notificationRepository.findByNotificationFrom(me)
         val filteredNotifications = rawNotifications.filter { notification ->
-            val expirationTime = notification.createdAt?.plusMillis(notificationExpiryMilliseconds)
+            val expirationTime = notification.createdAt?.plusMillis(Constants.NOTIFICATION_EXPIRY_MILLISECONDS)
             expirationTime?.isAfter(Instant.now()) ?: false
         }
 
         return filteredNotifications
     }
-
 
 
 }
