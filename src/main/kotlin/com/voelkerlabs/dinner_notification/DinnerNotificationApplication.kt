@@ -8,4 +8,5 @@ class DinnerNotificationApplication
 
 fun main(args: Array<String>) {
 	runApplication<DinnerNotificationApplication>(*args)
+	/*TEst*/
 }
