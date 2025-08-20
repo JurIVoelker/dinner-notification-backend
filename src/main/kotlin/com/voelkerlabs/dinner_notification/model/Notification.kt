@@ -1,5 +1,6 @@
 package com.voelkerlabs.dinner_notification.model
 
+import com.voelkerlabs.dinner_notification.Constants
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -29,5 +30,14 @@ data class Notification(
 ) {
     fun isNotRated(): Boolean {
         return this.notificationStatus == NotificationStatus.PENDING || this.notificationStatus == NotificationStatus.RECEIVED || this.notificationStatus == NotificationStatus.IDLE
+    }
+
+    fun expirationTime(): Instant {
+        val expirationTime = createdAt?.plusMillis(Constants.NOTIFICATION_EXPIRY_MILLISECONDS)
+        return expirationTime ?: Instant.now()
+    }
+
+    fun isExpired(): Boolean {
+        return (expirationTime().isBefore(Instant.now())) || notificationStatus == NotificationStatus.EXPIRED
     }
 }

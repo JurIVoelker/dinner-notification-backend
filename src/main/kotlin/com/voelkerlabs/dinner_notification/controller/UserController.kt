@@ -2,27 +2,30 @@ package com.voelkerlabs.dinner_notification.controller
 
 import com.voelkerlabs.dinner_notification.dto.UpdateUserRequestDTO
 import com.voelkerlabs.dinner_notification.dto.UserDTO
-import com.voelkerlabs.dinner_notification.repository.UserRepository
+import com.voelkerlabs.dinner_notification.service.UserService
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-class UserController @Autowired constructor(private val userRepository: UserRepository) {
+class UserController @Autowired constructor(
+    private val userService: UserService
+) {
     @GetMapping("/users")
     fun getUsers(): List<UserDTO> {
-        val users = userRepository.findAll()
-        return users.map{user -> UserDTO(user.id, user.userName, points = user.points ?: 0) }
+        val users = userService.findAll()
+        return userService.toDTO(users)
     }
 
     @PutMapping("/user")
-    fun updateUser(@RequestBody @Valid body: UpdateUserRequestDTO): String {
-        val existingUser = userRepository.findById(body.id).orElseThrow()
+    fun updateUser(@RequestBody @Valid body: UpdateUserRequestDTO): UserDTO {
+        val existingUser = userService.findById(body.id)
         existingUser.fcmToken = body.fcmToken
-        userRepository.save(existingUser)
-        return "OK"
+        userService.save(existingUser)
+        return userService.toDTO(existingUser)
     }
 }

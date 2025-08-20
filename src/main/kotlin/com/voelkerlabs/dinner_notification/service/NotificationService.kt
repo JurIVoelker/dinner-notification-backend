@@ -2,6 +2,7 @@ package com.voelkerlabs.dinner_notification.service
 
 import com.voelkerlabs.dinner_notification.Constants
 import com.voelkerlabs.dinner_notification.dto.NotificationRatingResponseDTO
+import com.voelkerlabs.dinner_notification.model.Notification
 import com.voelkerlabs.dinner_notification.model.NotificationStatus
 import com.voelkerlabs.dinner_notification.repository.NotificationRepository
 import com.voelkerlabs.dinner_notification.repository.UserRepository
@@ -21,7 +22,10 @@ class NotificationService @Autowired constructor(
         return pointsToAdd.toInt().coerceAtLeast(0).coerceAtMost(Constants.MAX_POINTS)
     }
 
-    fun handleNotificationRating(notificationId: Long, notificationStatus: NotificationStatus): NotificationRatingResponseDTO {
+    fun handleNotificationRating(
+        notificationId: Long,
+        notificationStatus: NotificationStatus
+    ): NotificationRatingResponseDTO {
         val notification = notificationRepository.findById(notificationId).orElseThrow()
         val user = userRepository.findById(notification.notificationTo ?: throw NullPointerException()).orElseThrow()
         var points = user.points ?: 0
@@ -36,4 +40,45 @@ class NotificationService @Autowired constructor(
         notificationRepository.save(notification)
         return NotificationRatingResponseDTO(pointsToAdd = pointsToAdd)
     }
+
+    fun save(notification: Notification) {
+        notificationRepository.save(notification)
+    }
+
+    fun findNotificationsByNotificationTo(notificationTo: Long): List<Notification> {
+        return notificationRepository.findNotificationsByNotificationTo(notificationTo)
+    }
+
+    fun getUnexpiredNotifications(notifications: List<Notification>): List<Notification> {
+        return notifications.filter { notification ->
+            !notification.isExpired()
+        }
+    }
+
+    fun markExpiredNotifications(notifications: List<Notification>) {
+        val expiredNotifications = notifications.filter { notification ->
+            notification.isExpired()
+        }
+        expiredNotifications.forEach { notification ->
+            notification.notificationStatus = NotificationStatus.EXPIRED
+            save(notification)
+        }
+    }
+
+    fun markPendingNotificationsAsReceived(notifications: List<Notification>): List<Notification> {
+        val unexpiredNotifications = getUnexpiredNotifications(notifications)
+        unexpiredNotifications.forEach { notification ->
+            if (notification.notificationStatus === NotificationStatus.PENDING) {
+                notification.notificationStatus = NotificationStatus.RECEIVED
+                save(notification)
+            }
+        }
+        return unexpiredNotifications
+    }
+
+    fun findByNotificationsFrom(userId: Long): List<Notification> {
+        return notificationRepository.findByNotificationFrom(userId)
+    }
+
+
 }

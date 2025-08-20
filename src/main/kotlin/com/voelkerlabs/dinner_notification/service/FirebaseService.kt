@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.Message
+import com.voelkerlabs.dinner_notification.model.firebase.FirebaseDinnerNotificationMessage
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Service
 import java.io.InputStream
@@ -27,8 +28,17 @@ class FirebaseService {
 
     fun sendMessage(deviceToken: String?, title: String, body: String) {
         val message = Message.builder().setToken(deviceToken).setNotification(
-                com.google.firebase.messaging.Notification.builder().setTitle(title).setBody(body).build()
-            ).build()
+            com.google.firebase.messaging.Notification.builder().setTitle(title).setBody(body).build()
+        ).build()
+
+        val response = FirebaseMessaging.getInstance().send(message)
+        println("Sent message with response: $response")
+    }
+
+    fun sendMessage(notification: FirebaseDinnerNotificationMessage) {
+        val message = Message.builder().setToken(notification.fcmToken).setNotification(
+            com.google.firebase.messaging.Notification.builder().setBody(notification.toJSONString()).build()
+        ).build()
 
         val response = FirebaseMessaging.getInstance().send(message)
         println("Sent message with response: $response")

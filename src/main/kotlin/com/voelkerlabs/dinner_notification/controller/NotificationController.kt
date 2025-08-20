@@ -5,10 +5,11 @@ import com.voelkerlabs.dinner_notification.dto.NotificationRatingResponseDTO
 import com.voelkerlabs.dinner_notification.dto.NotificationRequestDTO
 import com.voelkerlabs.dinner_notification.model.Notification
 import com.voelkerlabs.dinner_notification.model.NotificationStatus
+import com.voelkerlabs.dinner_notification.model.firebase.FirebaseDinnerNotificationMessage
 import com.voelkerlabs.dinner_notification.repository.NotificationRepository
-import com.voelkerlabs.dinner_notification.repository.UserRepository
 import com.voelkerlabs.dinner_notification.service.FirebaseService
 import com.voelkerlabs.dinner_notification.service.NotificationService
+import com.voelkerlabs.dinner_notification.service.UserService
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,13 +23,13 @@ import java.time.Instant
 @RestController
 class NotificationController @Autowired constructor(
     private val firebaseService: FirebaseService,
-    private val userRepository: UserRepository,
+    private val userService: UserService,
     private val notificationRepository: NotificationRepository,
     private val notificationService: NotificationService
 ) {
     @PostMapping("/notifications")
     fun sendNotifications(@RequestBody @Valid body: NotificationRequestDTO): List<Notification> {
-        val users = body.userIds.mapNotNull { id -> userRepository.findById(id).orElse(null) }
+        val users = userService.findByIdsNotNull(body.userIds)
 
         val notificationList = mutableListOf<Notification>()
 
@@ -40,12 +41,17 @@ class NotificationController @Autowired constructor(
             )
             try {
                 firebaseService.sendMessage(
-                    user.fcmToken, "Test", "Notification"
+                    FirebaseDinnerNotificationMessage(
+                        user.fcmToken ?: "",
+                        notification.createdAt ?: Instant.now(),
+                        notification.notificationFrom ?: -1,
+                        Constants.NOTIFICATION_EXPIRY_MILLISECONDS
+                    )
                 )
             } catch (_: Exception) {
                 notification.notificationStatus = NotificationStatus.ERROR
             }
-            notificationRepository.save(notification)
+            notificationService.save(notification)
             notificationList.add(notification)
         }
         return notificationList
@@ -53,30 +59,10 @@ class NotificationController @Autowired constructor(
 
     @GetMapping("/notifications/me")
     fun getOwnNotifications(@RequestParam(value = "id") me: Long): List<Notification> {
-        val rawNotifications = notificationRepository.findNotificationsByNotificationTo(me)
-        /* Mark expired notifications */
-        val unmarkedExpiredNotifications = rawNotifications.filter { notification ->
-            val expirationTime = notification.createdAt?.plusMillis(Constants.NOTIFICATION_EXPIRY_MILLISECONDS)
-            (expirationTime?.isBefore(Instant.now())
-                ?: false) && notification.notificationStatus != NotificationStatus.EXPIRED
-        }
-        unmarkedExpiredNotifications.forEach { notification ->
-            val updatedNotification = notification
-            updatedNotification.notificationStatus = NotificationStatus.EXPIRED
-            notificationRepository.save(updatedNotification)
-        }/* Get and return unexpired notifications */
-        val filteredNotifications = rawNotifications.filter { notification ->
-            val expirationTime = notification.createdAt?.plusMillis(Constants.NOTIFICATION_EXPIRY_MILLISECONDS)
-            expirationTime?.isAfter(Instant.now()) ?: false
-        }/* Mark pending notifications as received */
-        filteredNotifications.forEach { notification ->
-            if (notification.notificationStatus === NotificationStatus.PENDING) {
-                notification.notificationStatus = NotificationStatus.RECEIVED
-                notificationRepository.save(notification)
-            }
-        }
-
-        return filteredNotifications
+        val rawNotifications = notificationService.findNotificationsByNotificationTo(me)
+        notificationService.markExpiredNotifications(rawNotifications)
+        val unexpiredNotifications = notificationService.markPendingNotificationsAsReceived(rawNotifications)
+        return unexpiredNotifications
     }
 
     @PutMapping("/notifications/accept")
@@ -90,15 +76,9 @@ class NotificationController @Autowired constructor(
     }
 
     @GetMapping("/notifications/trace")
-    fun traceNotifications(@RequestParam(value = "id") me: Long): List<Notification> {
-        val rawNotifications = notificationRepository.findByNotificationFrom(me)
-        val filteredNotifications = rawNotifications.filter { notification ->
-            val expirationTime = notification.createdAt?.plusMillis(Constants.NOTIFICATION_EXPIRY_MILLISECONDS)
-            expirationTime?.isAfter(Instant.now()) ?: false
-        }
-
-        return filteredNotifications
+    fun traceNotifications(@RequestParam(value = "id") userId: Long): List<Notification> {
+        val userNotifications = notificationService.findByNotificationsFrom(userId)
+        val unexpiredNotifications = notificationService.getUnexpiredNotifications(userNotifications)
+        return unexpiredNotifications
     }
-
-
 }
