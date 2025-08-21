@@ -14,11 +14,18 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/register")
-class RegisterController @Autowired constructor(private val userRepository: UserRepository, private val userService: UserService) {
+class RegisterController @Autowired constructor(private val userService: UserService) {
     @PostMapping
     fun register(@RequestBody @Valid body: RegisterRequestDTO): UserDTO {
-        val user = User(fcmToken = body.fcmToken, userName = body.userName)
-        userService.save(user)
-        return userService.toDTO(user)
+        val existingUser = userService.findByUserName(body.userName)
+        if (existingUser != null) {
+            existingUser.fcmToken = body.fcmToken
+            userService.save(existingUser)
+            return userService.toDTO(existingUser)
+        } else {
+            val user = User(fcmToken = body.fcmToken, userName = body.userName)
+            userService.save(user)
+            return userService.toDTO(user)
+        }
     }
 }

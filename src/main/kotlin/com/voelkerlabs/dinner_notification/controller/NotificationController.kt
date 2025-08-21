@@ -24,7 +24,6 @@ import java.time.Instant
 class NotificationController @Autowired constructor(
     private val firebaseService: FirebaseService,
     private val userService: UserService,
-    private val notificationRepository: NotificationRepository,
     private val notificationService: NotificationService
 ) {
     @PostMapping("/notifications")

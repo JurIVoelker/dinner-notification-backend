@@ -8,5 +8,6 @@ import org.springframework.data.repository.query.Param
 interface NotificationRepository : JpaRepository<Notification, Long> {
     @Query("SELECT n FROM Notification n WHERE n.notificationTo = :notificationTo")
     fun findNotificationsByNotificationTo(@Param("notificationTo") notificationTo: Long): List<Notification>
+
     fun findByNotificationFrom(notificationFrom: Long): List<Notification>
 }

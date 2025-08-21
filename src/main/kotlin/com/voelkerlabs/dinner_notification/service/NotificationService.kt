@@ -38,7 +38,7 @@ class NotificationService @Autowired constructor(
         }
         notification.notificationStatus = notificationStatus
         notificationRepository.save(notification)
-        return NotificationRatingResponseDTO(pointsToAdd = pointsToAdd)
+        return NotificationRatingResponseDTO(pointsToAdd = pointsToAdd, totalPoints = points.toInt())
     }
 
     fun save(notification: Notification) {
