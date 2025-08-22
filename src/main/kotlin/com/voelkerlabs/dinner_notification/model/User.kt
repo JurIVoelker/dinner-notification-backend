@@ -17,16 +17,16 @@ data class User(
     @Column(name = "id", updatable = false, nullable = false)
     val id: Long? = null,
 
-    @Column(name = "fcmToken", updatable = true, nullable = true)
-    var fcmToken: String? = null,
+    @Column(name = "fcm_token", updatable = true, nullable = false)
+    var fcmToken: String = "",
 
     @UpdateTimestamp
-    @Column(name = "updatedAt")
+    @Column(name = "updated_at")
     val updatedAt: Instant? = null,
 
-    @Column(name = "userName")
+    @Column(name = "user_name", nullable = false, unique = true)
     val userName: String = "",
 
-    @Column(name = "points")
-    var points: Long? = 0,
+    @Column(name = "points", nullable = false)
+    var points: Long = 0,
 )

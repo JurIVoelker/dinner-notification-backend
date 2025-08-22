@@ -19,14 +19,15 @@ data class Notification(
     val id: Long? = null,
 
     @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant? = null,
 
     var notificationStatus: NotificationStatus = NotificationStatus.IDLE,
 
-    @Column(name = "notificationFrom")
-    val notificationFrom: Long? = null,
-    @Column(name = "notificationTo")
-    val notificationTo: Long? = null,
+    @Column(name = "notification_from", nullable = false)
+    val notificationFrom: Long = -1,
+    @Column(name = "notification_to", nullable = false)
+    val notificationTo: Long = -1,
 ) {
     fun isNotRated(): Boolean {
         return this.notificationStatus == NotificationStatus.PENDING || this.notificationStatus == NotificationStatus.RECEIVED || this.notificationStatus == NotificationStatus.IDLE
