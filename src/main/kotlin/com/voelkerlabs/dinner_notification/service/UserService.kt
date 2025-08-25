@@ -5,12 +5,13 @@ import com.voelkerlabs.dinner_notification.exception.UserNotFoundException
 import com.voelkerlabs.dinner_notification.model.User
 import com.voelkerlabs.dinner_notification.repository.UserRepository
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 
 @Service
 class UserService @Autowired constructor(private val userRepository: UserRepository) {
     fun findAll(): List<User> {
-        return userRepository.findAll()
+        return userRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
     }
 
     fun findById(id: Long): User {
@@ -30,7 +31,7 @@ class UserService @Autowired constructor(private val userRepository: UserReposit
     }
 
     fun toDTO(users: List<User>): List<UserDTO> {
-        return users.map { user -> UserDTO(user.id, user.userName, points = user.points ?: 0) }
+        return users.map { user -> UserDTO(user.id, user.userName, points = user.points) }
     }
 
     fun findByIdsNotNull(userIds: List<Long>): List<User> {

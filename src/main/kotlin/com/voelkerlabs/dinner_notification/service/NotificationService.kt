@@ -7,6 +7,7 @@ import com.voelkerlabs.dinner_notification.model.NotificationStatus
 import com.voelkerlabs.dinner_notification.repository.NotificationRepository
 import com.voelkerlabs.dinner_notification.repository.UserRepository
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import java.time.Instant
 
@@ -27,8 +28,8 @@ class NotificationService @Autowired constructor(
         notificationStatus: NotificationStatus
     ): NotificationRatingResponseDTO {
         val notification = notificationRepository.findById(notificationId).orElseThrow()
-        val user = userRepository.findById(notification.notificationTo ?: throw NullPointerException()).orElseThrow()
-        var points = user.points ?: 0
+        val user = userRepository.findById(notification.notificationTo).orElseThrow()
+        var points = user.points
         var pointsToAdd = 0
         if (notification.isNotRated() && notification.createdAt != null) {
             pointsToAdd = getPointsToAdd(notification.createdAt)
