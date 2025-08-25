@@ -26,7 +26,8 @@ class UserController @Autowired constructor(
     @PutMapping("/user")
     fun updateUser(@RequestBody @Valid body: UpdateUserRequestDTO): UserDTO {
         val existingUser = userService.findById(body.id)
-        existingUser.fcmToken = body.fcmToken
+        if (body.fcmToken != null) existingUser.fcmToken = body.fcmToken
+        if (body.userName != null) existingUser.userName = body.userName
         userService.save(existingUser)
         return userService.toDTO(existingUser)
     }

@@ -25,7 +25,7 @@ data class User(
     val updatedAt: Instant? = null,
 
     @Column(name = "user_name", nullable = false, unique = true)
-    val userName: String = "",
+    var userName: String = "",
 
     @Column(name = "points", nullable = false)
     var points: Long = 0,

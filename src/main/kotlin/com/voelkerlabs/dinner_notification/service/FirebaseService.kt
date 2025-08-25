@@ -27,18 +27,16 @@ class FirebaseService {
     }
 
     fun sendMessage(deviceToken: String?, title: String, body: String) {
-        val message = Message.builder().setToken(deviceToken).setNotification(
-            com.google.firebase.messaging.Notification.builder().setTitle(title).setBody(body).build()
-        ).build()
+        val message = Message.builder().setToken(deviceToken).putAllData(HashMap()).build()
 
         val response = FirebaseMessaging.getInstance().send(message)
         println("Sent message with response: $response")
     }
 
     fun sendMessage(notification: FirebaseDinnerNotificationMessage) {
-        val message = Message.builder().setToken(notification.fcmToken).setNotification(
-            com.google.firebase.messaging.Notification.builder().setBody(notification.toJSONString()).build()
-        ).build()
+        val message =
+            Message.builder().setToken(notification.fcmToken).putData("createdAt", notification.createdAt.toString())
+                .build()
 
         val response = FirebaseMessaging.getInstance().send(message)
         println("Sent message with response: $response")
