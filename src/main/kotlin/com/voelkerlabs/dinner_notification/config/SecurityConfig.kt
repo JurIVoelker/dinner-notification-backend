@@ -13,7 +13,9 @@ import org.springframework.security.web.SecurityFilterChain
 public class SecurityConfig {
     @Bean
     fun defaultSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        http.authorizeHttpRequests { requests -> requests.anyRequest().authenticated() }
+        http.authorizeHttpRequests { requests -> requests
+            .requestMatchers("/health").permitAll()
+            .anyRequest().authenticated() }
         http.sessionManagement { session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)}
         http.httpBasic(Customizer.withDefaults())
         http.csrf{csrfConfigurer -> csrfConfigurer.disable()}
