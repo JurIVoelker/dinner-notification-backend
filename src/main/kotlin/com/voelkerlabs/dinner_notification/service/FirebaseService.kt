@@ -5,9 +5,12 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.Message
+import com.voelkerlabs.dinner_notification.exception.FirebaseSetupError
 import com.voelkerlabs.dinner_notification.model.firebase.FirebaseDinnerNotificationMessage
 import jakarta.annotation.PostConstruct
 import org.springframework.stereotype.Service
+import java.io.ByteArrayInputStream
+import java.io.File
 import java.io.InputStream
 
 @Service
@@ -19,8 +22,22 @@ class FirebaseService {
     }
 
     fun initializeFirebaseClient() {
-        val resourceStream: InputStream? = this::class.java.getResourceAsStream("/firebase-cert.json")
-            ?: throw IllegalArgumentException("Firebase service account file not found")
+        val filePath = "src/main/resources/firebase-cert.json"
+        var resourceStream: InputStream?;
+
+        if (!File(filePath).exists()) {
+            val env = System.getenv("FIREBASE_CERT")
+            println("Using firebase cert from env")
+            if (env == null) {
+                throw FirebaseSetupError()
+            }
+            resourceStream = ByteArrayInputStream(env.toByteArray(Charsets.UTF_8))
+        } else {
+            println("Using firebase cert from file")
+            resourceStream = this::class.java.getResourceAsStream("/firebase-cert.json")
+                ?: throw IllegalArgumentException("Firebase service account file not found")
+        }
+
 
         val options = FirebaseOptions.Builder().setCredentials(GoogleCredentials.fromStream(resourceStream)).build()
         FirebaseApp.initializeApp(options)
