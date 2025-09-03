@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.Message
+import com.google.firebase.messaging.Notification
 import com.voelkerlabs.dinner_notification.exception.FirebaseSetupError
 import com.voelkerlabs.dinner_notification.model.firebase.FirebaseDinnerNotificationMessage
 import jakarta.annotation.PostConstruct
@@ -46,7 +47,11 @@ class FirebaseService {
     fun sendMessage(notification: FirebaseDinnerNotificationMessage) {
         val message =
             Message.builder().setToken(notification.fcmToken).putData("createdAt", notification.createdAt.toString())
-                .build()
+                .setNotification(
+                    Notification.builder().setTitle("Essen!")
+                        .setBody("Essen ist fertig. Klicke auf die Benachrichtigung und bewege dich Richtung Essen.")
+                        .build()
+                ).build()
 
         val response = FirebaseMessaging.getInstance().send(message)
         println("Sent message with response: $response")
